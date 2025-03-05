@@ -211,6 +211,7 @@ class Cookidoo:
         user_data.add_field("grant_type", "password")
         user_data.add_field("username", self._cfg.email)
         user_data.add_field("password", self._cfg.password)
+        user_data.add_field("lang", self._cfg.localization.language)
 
         return await self._request_access_token(user_data)
 
