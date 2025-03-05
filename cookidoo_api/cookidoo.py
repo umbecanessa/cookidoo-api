@@ -252,7 +252,10 @@ class Cookidoo:
             print(f"URL: {url}")
             print("Headers:", self._token_headers)
             print("Form Data:")
-            for field_name, field_value in form_data._fields:  # type: ignore
+            # Access form data fields safely
+            for field in form_data._fields:
+                field_name = field[0]
+                field_value = field[2]  # The actual value is at index 2
                 # Don't print password
                 if field_name == "password":
                     print(f"  {field_name}: ********")
