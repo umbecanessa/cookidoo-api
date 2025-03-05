@@ -1610,11 +1610,52 @@ class Cookidoo:
             url = self.api_endpoint / MANAGED_COLLECTIONS_PATH.format(
                 **self._cfg.localization.__dict__
             )
+
+            # Print detailed request information
+            print("\n============ REQUEST DETAILS ============")
+            print(f"Request URL: {url}")
+            print("\nRequest Method: GET")
+            print("\nRequest Headers:")
+            for header_name, header_value in self._api_headers.items():
+                print(f"  {header_name}: {header_value}")
+            
+            print("\nRequest Query Parameters:")
+            print(f"  page: {page}")
+            print("======================================\n")
+            
             async with self._session.get(
                 url, headers=self._api_headers, params={"page": page}
             ) as r:
+                # Print detailed response information
+                print("============ RESPONSE DETAILS ============")
+                print(f"Response Status: {r.status} {r.reason}")
+                
+                print("\nResponse Headers:")
+                for header_name, header_value in r.headers.items():
+                    print(f"  {header_name}: {header_value}")
+                
+                response_text = await r.text()
+                print("\nResponse Body:")
+                try:
+                    # Try to parse and pretty print JSON
+                    import json
+                    response_json = json.loads(response_text)
+                    print(json.dumps(response_json, indent=2))
+                except json.JSONDecodeError:
+                    # If not JSON, print raw text
+                    print(response_text)
+                
+                print("\nResponse Cookies:")
+                for cookie in r.cookies.items():
+                    print(f"  {cookie}")
+                
+                print("=======================================\n")
+
                 _LOGGER.debug(
-                    "Response from %s [%s]: %s", url, r.status, await r.text()
+                    "Response from %s [%s]: %s",
+                    url,
+                    r.status,
+                    response_text
                 )
 
                 if r.status == HTTPStatus.UNAUTHORIZED:
