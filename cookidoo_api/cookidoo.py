@@ -230,6 +230,8 @@ class Cookidoo:
 
         Raises
         ------
+        CookidooAuthException
+            When the access token is not valid anymore
         CookidooRequestException
             If the request fails.
         CookidooParseException
@@ -244,14 +246,36 @@ class Cookidoo:
             url = self.api_endpoint / TOKEN_PATH.format(
                 **self._cfg.localization.__dict__
             )
+            
+            # Print request details
+            print("\n=== REQUEST DETAILS ===")
+            print(f"URL: {url}")
+            print("Headers:", self._token_headers)
+            print("Form Data:")
+            for field_name, field_value in form_data._fields:  # type: ignore
+                # Don't print password
+                if field_name == "password":
+                    print(f"  {field_name}: ********")
+                else:
+                    print(f"  {field_name}: {field_value}")
+            
             async with self._session.post(
                 url, data=form_data, headers=self._token_headers
             ) as r:
+                # Print response details
+                print("\n=== RESPONSE DETAILS ===")
+                print(f"Status: {r.status}")
+                print("Response Headers:", dict(r.headers))
+                
+                response_text = await r.text()
+                print("Response Body:", response_text)
+                print("================\n")
+
                 _LOGGER.debug(
                     "Response from %s [%s]: %s",
                     url,
                     r.status,
-                    await r.text()
+                    response_text
                     if r.status != 200
                     else "",  # do not log response on success, as it contains sensible data
                 )
