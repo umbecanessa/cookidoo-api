@@ -97,6 +97,13 @@ class Cookidoo:
     _api_headers: dict[str, str]
     _auth_data: CookidooAuthResponse | None
 
+    ALGOLIA_SEARCH_URL = "https://3ta8nt85xj-dsn.algolia.net/1/indexes/*/queries"
+    ALGOLIA_HEADERS = {
+        "x-algolia-agent": "Algolia for JavaScript (5.8.1); Search (5.8.1); Browser",
+        "x-algolia-api-key": "NjY1YmFiZDZmOWY2NzBmNDE0YTUyZjlmMWY3YjczYTYxMDQxNTA3NTE2YTk1OTI4Y2RjNmY0ZjhiMjk5YWE5ZWF0dHJpYnV0ZXNUb1JldHJpZXZlPWlkJTJDdGl0bGUlMkNpbWFnZSUyQ3JhdGluZyUyQ251bWJlck9mUmF0aW5ncyUyQ3RvdGFsVGltZSUyQ2NhdGVnb3J5JmZpbHRlcnM9KHRtdmVyc2lvbiUzQVRNMzElMjBPUiUyMHRtdmVyc2lvbiUzQVRNNSUyME9SJTIwdG12ZXJzaW9uJTNBVE02JTIwT1IlMjB0eXBlJTNBY2F0ZWdvcnlTdWdnZXN0aW9uKSZyZXN0cmljdEluZGljZXM9cmVjaXBlcy1wcm9kdWN0aW9uLWJ5LWVtcHR5U2VhcmNoU2NvcmUlMkNyZWNpcGVzLXByb2R1Y3Rpb24lMkNyZWNpcGVzLXByb2R1Y3Rpb24tYnktcHVibGlzaGVkQXQtZGVzYyUyQ3JlY2lwZXMtcHJvZHVjdGlvbi1ieS10aXRsZS1hc2MlMkNyZWNpcGVzLXByb2R1Y3Rpb24tYnktcmF0aW5nLWRlc2MlMkNyZWNpcGVzLXByb2R1Y3Rpb24tYnktdG90YWxUaW1lLWFzYyUyQ3JlY2lwZXMtcHJvZHVjdGlvbi1ieS1wcmVwYXJhdGlvblRpbWUtYXNjJTJDY2F0ZWdvcnktc3VnZ2VzdGlvbnMtcHJvZHVjdGlvbiUyQ3N1Z2dlc3Rpb25zLXJlY2lwZXMtcHJvZHVjdGlvbiZ2YWxpZFVudGlsPTE3NDEyMTkyODg%3D",
+        "x-algolia-application-id": "3TA8NT85XJ"
+    }
+
     def __init__(
         self,
         session: ClientSession,
@@ -337,6 +344,60 @@ class Cookidoo:
         self.auth_data = data
 
         return data
+    
+    async def search_by_query(self, query: str = "", offset: int = 0, length: int = 10) -> dict:
+        """
+        Search recipes by query.
+
+        Parameters:
+        query (str): Search query string (default is empty string for all results).
+        offset (int): Starting position of results (default is 0).
+        length (int): Number of results to return (default is 10).
+
+        Returns:
+        dict: Contains `hits` (list of results) and `nbHits` (total matching results).
+        """
+        search_payload = {
+            "requests": [{
+                "type": "default",
+                "indexName": "recipes-production-by-emptySearchScore",
+                "query": query,
+                "distinct": True,
+                "facetingAfterDistinct": True,
+                "enableRules": True,
+                "attributesToHighlight": ["title"],
+                "ignorePlurals": True,
+                "queryLanguages": ["en"],
+                "analyticsTags": [
+                    "app:search-webapp", "ui-lang:en", "touchpoint:mobile",
+                    "context:recipes", "market:be", "path:/search/en"
+                ],
+                "ruleContexts": [
+                    "lang_en", "be.tmmobile.vorwerk-digital.com", "mobile", "market_be__lang_en"
+                ],
+                "filters": "(language:en) AND (NOT accessories:cutter)",
+                "offset": offset,
+                "length": length,
+                "clickAnalytics": True
+            }],
+            "strategy": "none"
+        }
+
+        try:
+            async with self._session.post(
+                self.ALGOLIA_SEARCH_URL,
+                headers=self.ALGOLIA_HEADERS,
+                json=search_payload
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+                return {
+                    "hits": data["results"][0]["hits"],
+                    "nbHits": data["results"][0]["nbHits"]
+                }
+        except aiohttp.ClientError as e:
+            _LOGGER.error("Search request failed: %s", e)
+            return {"hits": [], "nbHits": 0}
 
     async def get_user_info(
         self,
@@ -666,6 +727,9 @@ class Cookidoo:
             raise CookidooRequestException(
                 "Loading recipes failed due to request exception."
             ) from e
+        
+
+
 
     async def get_ingredient_items(
         self,
@@ -1605,6 +1669,8 @@ class Cookidoo:
             If the parsing of the request response fails.
 
         """
+
+        
 
         try:
             url = self.api_endpoint / MANAGED_COLLECTIONS_PATH.format(
