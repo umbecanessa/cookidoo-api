@@ -247,32 +247,52 @@ class Cookidoo:
                 **self._cfg.localization.__dict__
             )
             
-            # Print request details
-            print("\n=== REQUEST DETAILS ===")
-            print(f"URL: {url}")
-            print("Headers:", self._token_headers)
-            print("Form Data:")
-            # Access form data fields safely
+            # Print detailed request information
+            print("\n============ REQUEST DETAILS ============")
+            print(f"Request URL: {url}")
+            print("\nRequest Method: POST")
+            print("\nRequest Headers:")
+            for header_name, header_value in self._token_headers.items():
+                print(f"  {header_name}: {header_value}")
+            
+            print("\nRequest Form Data:")
+            raw_form_data = {}
             for field in form_data._fields:
                 field_name = field[0]
                 field_value = field[2]  # The actual value is at index 2
-                # Don't print password
-                if field_name == "password":
-                    print(f"  {field_name}: ********")
-                else:
-                    print(f"  {field_name}: {field_value}")
+                raw_form_data[field_name] = "********" if field_name == "password" else field_value
+                print(f"  {field_name}: {raw_form_data[field_name]}")
+            
+            print("\nRequest Query Parameters: None")
+            print("======================================\n")
             
             async with self._session.post(
                 url, data=form_data, headers=self._token_headers
             ) as r:
-                # Print response details
-                print("\n=== RESPONSE DETAILS ===")
-                print(f"Status: {r.status}")
-                print("Response Headers:", dict(r.headers))
+                # Print detailed response information
+                print("============ RESPONSE DETAILS ============")
+                print(f"Response Status: {r.status} {r.reason}")
+                
+                print("\nResponse Headers:")
+                for header_name, header_value in r.headers.items():
+                    print(f"  {header_name}: {header_value}")
                 
                 response_text = await r.text()
-                print("Response Body:", response_text)
-                print("================\n")
+                print("\nResponse Body:")
+                try:
+                    # Try to parse and pretty print JSON
+                    import json
+                    response_json = json.loads(response_text)
+                    print(json.dumps(response_json, indent=2))
+                except json.JSONDecodeError:
+                    # If not JSON, print raw text
+                    print(response_text)
+                
+                print("\nResponse Cookies:")
+                for cookie in r.cookies.items():
+                    print(f"  {cookie}")
+                
+                print("=======================================\n")
 
                 _LOGGER.debug(
                     "Response from %s [%s]: %s",
