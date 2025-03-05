@@ -395,9 +395,30 @@ class Cookidoo:
                     "hits": data["results"][0]["hits"],
                     "nbHits": data["results"][0]["nbHits"]
                 }
-        except aiohttp.ClientError as e:
-            _LOGGER.error("Search request failed: %s", e)
-            return {"hits": [], "nbHits": 0}
+        except TimeoutError as e:
+            _LOGGER.debug(
+                "Exception: Cannot execute search query:\n%s",
+                traceback.format_exc(),
+            )
+            raise CookidooRequestException(
+                "Search query failed due to connection timeout."
+            ) from e
+        except ClientError as e:
+            _LOGGER.debug(
+                "Exception: Cannot execute search query:\n%s",
+                traceback.format_exc(),
+            )
+            raise CookidooRequestException(
+                "Search query failed due to request exception."
+            ) from e
+        except JSONDecodeError as e:
+            _LOGGER.debug(
+                "Exception: Cannot parse search query response:\n%s",
+                traceback.format_exc(),
+            )
+            raise CookidooParseException(
+                "Search query response parsing failed."
+            ) from e
 
     async def get_user_info(
         self,
