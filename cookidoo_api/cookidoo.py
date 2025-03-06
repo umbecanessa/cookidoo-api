@@ -156,6 +156,11 @@ class Cookidoo:
         self.expires_in = auth_data.expires_in
 
     @property
+    def auth_data_export(self) -> CookidooAuthResponse | None:
+        """Export the entire auth data."""
+        return self._auth_data
+
+    @property
     def api_endpoint(self) -> URL:
         """Get the api endpoint."""
         if "international" in self._cfg.localization.url:
@@ -163,6 +168,11 @@ class Cookidoo:
         if "co.uk" in self._cfg.localization.url:
             return URL(API_ENDPOINT.format(country_code=CO_UK_COUNTRY_CODE))
         return URL(API_ENDPOINT.format(**self._cfg.localization.__dict__))
+
+    @property
+    def access_token(self) -> str:
+        """Get the access token."""
+        return self._auth_data.access_token if self._auth_data else ""
 
     async def refresh_token(self) -> CookidooAuthResponse:
         """Try to refresh the token.
@@ -384,11 +394,15 @@ class Cookidoo:
         }
 
         try:
+            # Construct the full URL with query parameters
+            full_url = f"{self.ALGOLIA_SEARCH_URL}?x-algolia-agent=Algolia%20for%20JavaScript%20(5.8.1)%3B%20Search%20(5.8.1)%3B%20Browser&x-algolia-api-key={self.ALGOLIA_HEADERS['x-algolia-api-key']}&x-algolia-application-id={self.ALGOLIA_HEADERS['x-algolia-application-id']}"
+
             async with self._session.post(
-                self.ALGOLIA_SEARCH_URL,
-                headers=self.ALGOLIA_HEADERS,
+                full_url,
+                headers={"Content-Type": "application/json"},
                 json=search_payload
             ) as response:
+                logging.info(f"Response status: {response.status}")
                 response.raise_for_status()
                 data = await response.json()
                 return {
